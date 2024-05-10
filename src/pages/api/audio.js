@@ -22,17 +22,15 @@ export default async function handler(req, res) {
 		});
 
 		const file = req.file;
-		const session = 'your_session_value'; // Declare the session variable
 
 		if (file) {
 			const audioData = file.buffer;
 			const id = uuidv4();
 			const inputFilePath = `audio/ogg/${id}.ogg`;
-			fs.writeFileSync(inputFilePath, audioData);
-
 			const outputFilePath = `audio/wav/${id}.wav`;
 
-			// Convert Opus to WAV using ffmpeg
+			fs.writeFileSync(inputFilePath, audioData);
+
 			const ffmpegCommand = `ffmpeg -i ${inputFilePath} ${outputFilePath}`;
 
 			exec(ffmpegCommand, async (error, stdout, stderr) => {
@@ -41,9 +39,9 @@ export default async function handler(req, res) {
 					res.status(500).json({ message: 'An error occurred during file conversion.' });
 					return;
 				}
-
-				res.status(200).send('Audio file received.');
+				fs.unlinkSync(inputFilePath);
 			});
+			res.status(200).send('Audio file received.');
 		} else {
 			res.status(400).json({ message: 'Please send a file.' });
 		}

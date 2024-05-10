@@ -15,6 +15,8 @@ RUN \
   else echo "Lockfile not found." && exit 1; \
   fi
 
+# Install FFmpeg
+RUN apk add --no-cache ffmpeg
 
 # Rebuild the source code only when needed
 FROM base AS builder
