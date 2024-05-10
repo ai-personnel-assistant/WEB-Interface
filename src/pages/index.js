@@ -1,22 +1,29 @@
 import Head from 'next/head';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 export default function Home() {
 	const [isRecording, setIsRecording] = useState(false);
 	const [audioBlob, setAudioBlob] = useState(null);
 	const [audioUrl, setAudioUrl] = useState(null);
+	const [text, setText] = useState(null);
+	const [error, setError] = useState(null);
 
 	const mediaRecorderRef = useRef(null);
 	const chunksRef = useRef([]);
 
 	const startRecording = () => {
-		const stream = navigator.mediaDevices.getUserMedia({ audio: true });
-		stream.then((stream) => {
-			mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/ogg' });
-			mediaRecorderRef.current.addEventListener('dataavailable', handleDataAvailable);
-			mediaRecorderRef.current.start();
-			setIsRecording(true);
-		});
+		navigator.mediaDevices
+			.getUserMedia({ audio: true })
+			.then((stream) => {
+				mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/ogg' });
+				mediaRecorderRef.current.addEventListener('dataavailable', handleDataAvailable);
+				mediaRecorderRef.current.start();
+				setIsRecording(true);
+			})
+			.catch((error) => {
+				console.error('Error accessing microphone:', error);
+				setError('Error accessing microphone. Please check your browser permissions.');
+			});
 	};
 
 	const stopRecording = () => {
@@ -40,11 +47,37 @@ export default function Home() {
 		if (audioBlob) {
 			const formData = new FormData();
 			formData.append('audio', audioBlob);
-			console.log(formData);
-			const response = await fetch('/api/audio', {
-				method: 'POST',
-				body: formData,
-			});
+
+			const controller = new AbortController();
+			const signal = controller.signal;
+
+			// Set a timeout of 30 seconds (adjust as needed)
+			const timeoutId = setTimeout(() => {
+				controller.abort();
+				console.log('Request timed out');
+			}, 30000); // 30 seconds
+
+			try {
+				const response = await fetch('/api/audio', {
+					method: 'POST',
+					body: formData,
+					signal: signal,
+				});
+				clearTimeout(timeoutId); // Clear timeout if request succeeds before timeout
+
+				const data = await response.json();
+				console.log(data);
+				if (data.error) {
+					setError(data.error);
+				} else {
+					setText(data.text);
+					setAudioUrl(data.url);
+				}
+			} catch (error) {
+				console.error('Fetch error:', error);
+				// Handle fetch error here
+				setError('An error occurred while uploading audio.');
+			}
 		}
 	};
 
@@ -67,10 +100,12 @@ export default function Home() {
 					)}
 					{audioBlob && (
 						<button onClick={uploadAudio} className="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">
-							{/* Your Button Text */}Upload Recorded Audio
+							Upload Recorded Audio
 						</button>
 					)}
 					<audio controls src={audioUrl}></audio>
+					{text && <p className="text-white">{text}</p>}
+					{error && <p className="text-red-500">{error}</p>}
 				</div>
 			</main>
 		</>
