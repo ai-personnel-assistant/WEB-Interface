@@ -2,6 +2,7 @@ import multer from 'multer';
 import fs from 'fs';
 import { exec } from 'child_process';
 import { v4 as uuidv4 } from 'uuid';
+import ai from '../../../lib/ai';
 const upload = multer();
 
 export const config = {
@@ -33,20 +34,24 @@ export default async function handler(req, res) {
 
 			const ffmpegCommand = `ffmpeg -i ${inputFilePath} ${outputFilePath}`;
 
-			exec(ffmpegCommand, async (error, stdout, stderr) => {
-				if (error) {
-					console.error('Error converting file to WAV:', error);
-					res.status(500).json({ message: 'An error occurred during file conversion.' });
+			exec(ffmpegCommand, async (ffmpegError, stdout, stderr) => {
+				if (ffmpegError) {
+					res.status(500).json({ status: 500, error: 'An error occurred during file conversion.' });
 					return;
 				}
 				fs.unlinkSync(inputFilePath);
+				const { text, url, status, error } = await ai(id);
+				if (!error) {
+					res.status(200).send({ text, url });
+				} else {
+					res.status(status).json({ error, status });
+				}
 			});
-			res.status(200).send('Audio file received.');
 		} else {
-			res.status(400).json({ message: 'Please send a file.' });
+			res.status(400).json({ status: 400, error: 'Please send a file.' });
 		}
 	} catch (error) {
 		console.error('Error:', error);
-		res.status(500).json({ message: 'An error has occurred while processing the file.' });
+		res.status(500).json({ status: 500, error: 'An error has occurred while processing the file.' });
 	}
 }
