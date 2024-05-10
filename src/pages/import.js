@@ -46,7 +46,7 @@ const DropZone = ({ data, dispatch }) => {
 			const formData = new FormData();
 			formData.append('audio', audioBlob);
 			console.log(formData);
-			const response = await fetch('/api/audio3', {
+			const response = await fetch('/api/audio', {
 				method: 'POST',
 				body: formData,
 			});
