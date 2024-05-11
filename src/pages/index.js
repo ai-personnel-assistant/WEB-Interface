@@ -31,19 +31,28 @@ export default function Home() {
 		setIsRecording(false);
 	};
 
+	function handleAudioPlayback(audioUrl) {
+		if (audioUrl) {
+			const audio = new Audio(audioUrl);
+			audio.play();
+		}
+	}
+
 	const handleDataAvailable = (e) => {
 		if (e.data.size > 0) {
 			chunksRef.current.push(e.data);
 			console.log(chunksRef.current);
-			setAudioBlob(new Blob(chunksRef.current, { type: 'audio/ogg' }));
+			const blob = new Blob(chunksRef.current, { type: 'audio/ogg' });
+			setAudioBlob(blob);
 			var url = URL.createObjectURL(new Blob(chunksRef.current, { type: 'audio/ogg' }));
 			console.log(url);
 			setAudioUrl(url);
 			chunksRef.current = [];
+			uploadAudio(blob);
 		}
 	};
 
-	const uploadAudio = async () => {
+	async function uploadAudio(audioBlob) {
 		if (audioBlob) {
 			const formData = new FormData();
 			formData.append('audio', audioBlob);
@@ -72,6 +81,7 @@ export default function Home() {
 				} else {
 					setText(data.text);
 					setAudioUrl(data.url);
+					handleAudioPlayback(data.url);
 				}
 			} catch (error) {
 				console.error('Fetch error:', error);
@@ -79,7 +89,7 @@ export default function Home() {
 				setError('An error occurred while uploading audio.');
 			}
 		}
-	};
+	}
 
 	return (
 		<>
@@ -98,13 +108,7 @@ export default function Home() {
 							Start Recording
 						</button>
 					)}
-					{audioBlob && (
-						<button onClick={uploadAudio} className="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">
-							Upload Recorded Audio
-						</button>
-					)}
-					<audio controls src={audioUrl}></audio>
-					{text && <p className="text-white">{text}</p>}
+
 					{error && <p className="text-red-500">{error}</p>}
 				</div>
 			</main>
