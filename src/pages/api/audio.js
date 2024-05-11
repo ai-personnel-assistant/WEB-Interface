@@ -30,6 +30,7 @@ export default async function handler(req, res) {
 			const inputFilePath = `audio/ogg/${id}.ogg`;
 			const outputFilePath = `audio/wav/${id}.wav`;
 
+			console.log('id:', id);
 			fs.writeFileSync(inputFilePath, audioData);
 
 			const ffmpegCommand = `ffmpeg -i ${inputFilePath} ${outputFilePath}`;
